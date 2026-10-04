@@ -83,7 +83,18 @@ A freshly created profile's patch file contains just `[]`; **replace** that line
 rather than appending after it, because `[]` followed by a list item is a YAML
 parse error and the profile will not boot.
 
-**Once published to npm**, the command matches the official plugins exactly:
+**Pin a version** (recommended for anything long-lived, so later changes cannot
+affect you):
+
+```sh
+dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote#v0.1.0
+```
+
+`#v0.1.0` is a git tag; swap it for another tag, or drop `#…` to follow main.
+
+**Once published to npm**, the command gets shorter and matches the official
+plugins exactly — but that needs an npm account, and npm's website bot protection
+blocks some exit IPs (see [docs/releasing.md](docs/releasing.md)):
 
 ```sh
 dsh plugin --profile web add dsh-selection-quote

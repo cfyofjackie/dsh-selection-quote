@@ -69,7 +69,15 @@ export DSH_HOME=/tmp/dsh-sandbox
 
 新建档位的 patch 文件里只有一个 `[]`，要**替换**那一行，不要接在它后面——`[]` 后面跟列表项是 YAML 解析错误，档位会起不来。
 
-**发布到 npm 之后**，命令会变成和官方插件完全一样的形态：
+**锁定版本安装**（长期用建议这样，不会被后续改动影响）：
+
+```sh
+dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote#v0.1.0
+```
+
+`#v0.1.0` 是 git tag；换成别的 tag 就换版本，去掉 `#...` 就是跟最新 main。
+
+**发布到 npm 之后**，命令还能更短，和官方插件形态完全一致——但那需要一个 npm 账号，而且 npm 官网的反机器人防护会拦掉某些出口 IP（详见 [docs/releasing.md](docs/releasing.md)）：
 
 ```sh
 dsh plugin --profile web add dsh-selection-quote
