@@ -119,6 +119,8 @@ npm test                        # 构建 + 无浏览器测试
 
 `lib/` 是提交进仓库的，所以 clone 下来不用构建就能用。CI 在 ubuntu / windows / macos 三平台各跑一遍构建和全部测试，提交的 `lib/` 与源码不一致时会失败。
 
+发布到 npm 的步骤（维护者）：[docs/releasing.md](docs/releasing.md)。
+
 ## 许可
 
 MIT —— 见 [LICENSE](LICENSE)。与 DeepSeek 官方无关联。
