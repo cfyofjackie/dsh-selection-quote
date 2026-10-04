@@ -79,7 +79,7 @@ dsh plugin --profile web add dsh-selection-quote
 
 </details>
 
-![在对话中选中一段文字，选区旁浮出「添加到对话框」](docs/demo.png)
+![上：选中一段文字，旁边浮出「添加到对话框」按钮。下：点一下之后，输入框里出现一枚可以整体删除的引用芯片](docs/demo.png)
 
 ## 环境要求
 

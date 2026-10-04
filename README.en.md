@@ -89,7 +89,7 @@ dsh plugin --profile web add dsh-selection-quote
 
 </details>
 
-![Selecting a passage; an "add to chat" button appears next to the selection](docs/demo.png)
+![Top: selecting a passage makes an "Add to chat" button appear. Bottom: the quote chip that clicking it puts in the composer](docs/demo.png)
 
 ## Requirements
 
