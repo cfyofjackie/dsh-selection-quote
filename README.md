@@ -8,6 +8,16 @@
 
 ![在对话中选中一段文字，选区旁浮出「添加到对话框」](docs/demo.png)
 
+**在界面里装（最简单）**：侧边栏 **Plugins** 页面 → **添加插件** → 填
+
+```
+github:cfyofjackie/dsh-selection-quote
+```
+
+→ 点「安装」。**填的就是这一串，不要带 `dsh plugin --profile … add` 那部分**——那个框要的是插件标识本身，不是终端命令。
+
+**或者一条命令：**
+
 ```sh
 dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote
 ```
@@ -34,7 +44,32 @@ ChatGPT / Codex 里选中一段话可以「添加到对话」：针对**具体�
 
 ## 安装
 
-只装包不挂载、或者挂载了没生效，都会表现为"什么都没发生"。`add` 一条命令做完两件事：
+只装包不挂载、或者挂载了没生效，都会表现为"什么都没发生"。下面几种任选其一。
+
+### 界面安装
+
+侧边栏 **Plugins** 页面 → **添加插件** → 填下面这一串 → 「安装」：
+
+```
+github:cfyofjackie/dsh-selection-quote
+```
+
+那个输入框接受的形式（来自 host 的 `parseInstallSpec`，就这么几种）：
+
+| 形式 | 例子 |
+|---|---|
+| git 简写 | `github:cfyofjackie/dsh-selection-quote` |
+| 托管仓库 URL | `https://github.com/cfyofjackie/dsh-selection-quote` |
+| git 协议 | `git@github.com:cfyofjackie/dsh-selection-quote.git` |
+| tarball | 任何以 `.tgz` / `.tar.gz` 结尾的地址 |
+| 本地目录 | 必须是**绝对路径**，如 `/Users/you/dev/dsh-selection-quote` |
+| 包名 | `dsh-selection-quote`（仅在该包发布到 npm 之后才有意义） |
+
+把它当成终端命令填进去（带上 `dsh plugin --profile … add`）是不行的。
+
+### 命令安装
+
+`add` 一条命令做完"装包 + 挂载"两件事：
 
 ```sh
 dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote

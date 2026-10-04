@@ -9,6 +9,17 @@ English | [中文](README.md)
 
 ![Selecting a passage; an "add to chat" button appears next to the selection](docs/demo.png)
 
+**From the GUI (easiest)**: the sidebar's **Plugins** page → **Add plugin** → enter
+
+```
+github:cfyofjackie/dsh-selection-quote
+```
+
+→ Install. Type **only that spec** — the field wants the plugin identifier, not the
+`dsh plugin --profile … add` command around it.
+
+**Or one command:**
+
 ```sh
 dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote
 ```
@@ -41,7 +52,33 @@ It never sends, never writes storage, and never touches the session log.
 ## Install
 
 Installing the package without mounting it, or mounting it without the page
-reloading, both look exactly like "nothing happened". One `add` does both halves:
+reloading, both look exactly like "nothing happened". Pick one of these.
+
+### From the GUI
+
+Sidebar **Plugins** page → **Add plugin** → enter this → Install:
+
+```
+github:cfyofjackie/dsh-selection-quote
+```
+
+The field accepts exactly these shapes (from the host's `parseInstallSpec`):
+
+| Shape | Example |
+|---|---|
+| git shorthand | `github:cfyofjackie/dsh-selection-quote` |
+| hosted repository URL | `https://github.com/cfyofjackie/dsh-selection-quote` |
+| git protocol | `git@github.com:cfyofjackie/dsh-selection-quote.git` |
+| tarball | any address ending `.tgz` / `.tar.gz` |
+| local directory | must be **absolute**, e.g. `/Users/you/dev/dsh-selection-quote` |
+| registry name | `dsh-selection-quote` (only meaningful once published to npm) |
+
+Pasting the terminal command into it (with `dsh plugin --profile … add`) does not
+work.
+
+### From a command
+
+One `add` does both halves — install the package and mount it:
 
 ```sh
 dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote
