@@ -91,6 +91,18 @@ dsh plugin --profile web add dsh-selection-quote
 
 ![Selecting a passage; an "add to chat" button appears next to the selection](docs/demo.png)
 
+## Requirements
+
+| | |
+|---|---|
+| **DSH version** | Verified on **`@deepseek-ai/dsh-desktop` `0.2.0-rc.2`** (current). The reference-pipeline APIs it depends on — the `ctx.inputTriggers` codec and `insertReference` — also exist with identical signatures in the earlier `0.1.5-rc.3` package set, but that combination is **untested**. |
+| **Surface** | Both the web version (`dsh web`) and the desktop app. |
+| **Views** | Chat view only; the trajectory and waterfall views carry none of the DOM anchors it needs. |
+| **Language** | Follows DSH's locale; `zh` and `en` ship in the plugin. |
+
+If a DSH build lacks those APIs the plugin does not vanish silently — its own
+error boundary reports the failure on screen.
+
 ## The problem it solves
 
 ChatGPT and Codex let you select a passage and "add to conversation", so you can
@@ -179,8 +191,8 @@ event orderings. Every regression test corresponds to a failure this plugin has
 actually had.
 
 `lib/` is committed, so a checkout needs no build step. CI builds and tests on
-ubuntu, windows and macos, and fails when the committed `lib/` no longer matches
-the source.
+ubuntu, windows and macos across Node 22 and 24, and fails when the committed
+`lib/` no longer matches the source.
 
 Releasing to npm (maintainer): [docs/releasing.md](docs/releasing.md).
 

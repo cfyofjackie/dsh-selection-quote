@@ -81,6 +81,17 @@ dsh plugin --profile web add dsh-selection-quote
 
 ![在对话中选中一段文字，选区旁浮出「添加到对话框」](docs/demo.png)
 
+## 环境要求
+
+| | |
+|---|---|
+| **DSH 版本** | 实测于 **`@deepseek-ai/dsh-desktop` `0.2.0-rc.2`**（当前版本）。插件依赖的引用管线 API——`ctx.inputTriggers` 的 codec、`insertReference`——在更早的 `0.1.5-rc.3` 包集合里也存在且签名一致，但那个组合**没有实测过**。 |
+| **表面** | 网页版（`dsh web`）和桌面 App 都可以。 |
+| **视图** | 只在 **chat** 视图生效；trajectory / waterfall 视图没有它需要的 DOM 锚点。 |
+| **语言** | 跟随 DSH 的语言设置，插件内置 `zh` / `en`。 |
+
+如果某个 DSH 构建缺少这些 API，插件**不会静默消失**——它自带的错误边界会把失败显示在界面上。
+
 ## 解决什么问题
 
 ChatGPT / Codex 里选中一段话可以「添加到对话」：针对**具体某一句**追问，不用重新描述一遍，也不用担心粘进去以后分不清哪段是引文、哪段是自己的话。DSH 里没有这个动作——只能手动复制粘贴。
@@ -139,7 +150,7 @@ npm test
 
 `npm test` 跑的是**构建产物**而不是 TypeScript 源码：它 stub 掉浏览器全局量和平台种子模块，用一个带 React 错误边界语义的迷你 hook 运行时渲染组件，并按真实事件顺序重放。每一项回归测试都对应这个插件真实出过的一次故障。
 
-`lib/` 是提交进仓库的，所以 clone 下来不用构建就能用。CI 在 ubuntu / windows / macos 三平台各跑一遍构建和全部测试，提交的 `lib/` 与源码不一致时会失败。
+`lib/` 是提交进仓库的，所以 clone 下来不用构建就能用。CI 在 ubuntu / windows / macos 三平台、Node 22 和 24 上各跑一遍构建和全部测试，提交的 `lib/` 与源码不一致时会失败。
 
 发布到 npm 的步骤（维护者）：[docs/releasing.md](docs/releasing.md)。
 
