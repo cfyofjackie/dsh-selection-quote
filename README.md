@@ -84,36 +84,26 @@ only one of them stays active.
 
 | | needs a package manager | edits | verified |
 |---|---|---|---|
-| **1. As a package + profile bundle** | yes | one line of JSON | yes |
+| **1. As a package** | yes | none | yes |
 | **2. From a clone, by absolute path** | no | four lines of YAML | yes |
-| **3. As a package + insert by name** | yes | four lines of YAML | yes |
+| **3. As a package, inserted by name** | yes | four lines of YAML | yes |
 
-### 1. As a package, mounted as a profile bundle
+### 1. As a package
 
 ```sh
 dsh plugin --profile desktop add github:cfyofjackie/dsh-selection-quote
 ```
 
-That forwards to pnpm inside the profile directory and installs from the GitHub
-repository. Then add the package name to the profile's bundle list in
-`~/.dsh/profiles/desktop/package.json`:
+That is the whole install. The command forwards to pnpm inside the profile
+directory, and because the package declares `dsh.bundle.patch` it also appends
+the package name to `dsh.profile.bundles` — which is what actually mounts the
+plugin. It does not say so in its output, so **check the bundle list rather than
+adding the name yourself**: a duplicate entry mounts the same layer twice and
+leaves two entries sharing one id, of which only one stays active.
 
-```json
-"dsh": {
-  "profile": {
-    "bundles": [
-      "@deepseek-ai/dsh-base",
-      "@deepseek-ai/dsh-web-app",
-      "dsh-selection-quote"
-    ]
-  }
-}
-```
-
-That one line is the whole mount: the package ships its own profile layer
-(`cordis.patch.yml`, named by `dsh.bundle.patch` in its manifest), and a listed
-bundle without that declaration fails the boot loudly rather than silently doing
-nothing. Installing without listing it leaves the package present but inert.
+A package listed as a bundle without declaring `dsh.bundle` fails the boot loudly
+rather than silently doing nothing. Installing without being listed leaves the
+package present but inert.
 
 ### 2. From a clone, by absolute path
 
@@ -175,12 +165,11 @@ CLI="/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"
 export DSH_HOME=/tmp/dsh-sandbox
 "$CLI" --profile sandbox --from-default-profile web --dump-config   # create
 "$CLI" plugin --profile sandbox add github:cfyofjackie/dsh-selection-quote
-# then mount it: add "dsh-selection-quote" to
-#   $DSH_HOME/profiles/sandbox/package.json → dsh.profile.bundles
-# (or, without a package manager, put install route 2's YAML in
-#  $DSH_HOME/profiles/sandbox/cordis.patch.yml)
 "$CLI" --profile sandbox --port 3917                                # boot
 ```
+
+(Without a package manager, skip the second line and put install route 2's YAML
+in `$DSH_HOME/profiles/sandbox/cordis.patch.yml` instead.)
 
 To check the mount actually took before booting, `--dump-config` prints the
 composed tree, and the `dsh web` page's boot graph carries one row per client

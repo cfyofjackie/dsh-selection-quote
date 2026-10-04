@@ -273,6 +273,17 @@ if (selectionInTranscript()) window.getSelection()?.removeAllRanges();
 
 ---
 
+## Note: `dsh plugin add` mounts a bundle for you
+
+`dsh plugin --profile <name> add <spec>` does two things when the installed
+package declares `dsh.bundle.patch`: it installs the package with pnpm, **and** it
+appends the package name to the profile's `dsh.profile.bundles`. It does not
+mention the second part anywhere in its output.
+
+That matters because the obvious documentation — "install it, then add the name
+to the bundle list" — produces a duplicate entry that mounts the same layer
+twice. Check the list rather than appending to it.
+
 ## Checklist for a new DSH client plugin
 
 1. **Mount in the right scope.** Session-scoped standard props (`inputActions`,

@@ -57,31 +57,19 @@
 
 | | 需要包管理器 | 要改 | 已实测 |
 |---|---|---|---|
-| **1. 装成包 + 列进 profile bundle** | 是 | 一行 JSON | 是 |
+| **1. 装成包** | 是 | 不用改 | 是 |
 | **2. 从 clone 按绝对路径挂** | 否 | 四行 YAML | 是 |
-| **3. 装成包 + 在 patch 里按包名挂** | 是 | 四行 YAML | 是 |
+| **3. 装成包，在 patch 里按包名挂** | 是 | 四行 YAML | 是 |
 
-### 1. 装成包，作为 profile bundle 挂载
+### 1. 装成包
 
 ```sh
 dsh plugin --profile desktop add github:cfyofjackie/dsh-selection-quote
 ```
 
-这条命令会在档位目录里转发给 pnpm，直接从 GitHub 仓库安装。然后把包名加进 `~/.dsh/profiles/desktop/package.json` 的 bundle 列表：
+这就是全部安装动作。这条命令会在档位目录里转发给 pnpm；因为包里声明了 `dsh.bundle.patch`，它**同时**会把包名追加进 `dsh.profile.bundles`——真正完成挂载的是后者。它不会在输出里说明这一点，所以**去看一眼 bundle 列表，而不是自己再加一行**：重复的条目会把同一层应用两次，留下两个同 id 的条目，只有一个能生效。
 
-```json
-"dsh": {
-  "profile": {
-    "bundles": [
-      "@deepseek-ai/dsh-base",
-      "@deepseek-ai/dsh-web-app",
-      "dsh-selection-quote"
-    ]
-  }
-}
-```
-
-这一行就是全部挂载动作：包里自带自己的 profile 层（`cordis.patch.yml`，由 manifest 里的 `dsh.bundle.patch` 指明）。反过来，列进 `bundles` 却没声明 `dsh.bundle` 的包会让启动**明确报错**，而不是静默失效——只 `add` 不列进 `bundles`，包在那儿但不起作用。
+列进 `bundles` 却没声明 `dsh.bundle` 的包会让启动**明确报错**，而不是静默失效；只 `add` 而没被列进去，包在那儿但不起作用。
 
 ### 2. 从 clone 按绝对路径挂
 
@@ -132,12 +120,10 @@ CLI="/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"
 export DSH_HOME=/tmp/dsh-sandbox
 "$CLI" --profile sandbox --from-default-profile web --dump-config   # 建档位
 "$CLI" plugin --profile sandbox add github:cfyofjackie/dsh-selection-quote
-# 然后挂载：把 "dsh-selection-quote" 加进
-#   $DSH_HOME/profiles/sandbox/package.json → dsh.profile.bundles
-# （不想用包管理器，就把安装方式 2 的 YAML 放进
-#   $DSH_HOME/profiles/sandbox/cordis.patch.yml）
 "$CLI" --profile sandbox --port 3917                                # 启动
 ```
+
+（不用包管理器的话，跳过第二行，改成把安装方式 2 的 YAML 放进 `$DSH_HOME/profiles/sandbox/cordis.patch.yml`。）
 
 启动前想确认挂上了没有，`--dump-config` 会打印合成后的树；`dsh web` 那个页面的 boot graph 里，每个客户端插件各有一行，带自己 bundle 的内容哈希。
 
