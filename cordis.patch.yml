@@ -1,0 +1,13 @@
+# dsh-selection-quote's own profile layer.
+#
+# This file is what `dsh.bundle.patch` in package.json names, so listing this
+# package in a profile's `dsh.profile.bundles` mounts the plugin with no further
+# editing. The entry names the package rather than a path, and the Loader
+# resolves it from the profile's own `node_modules` — which is where
+# `dsh plugin --profile <name> add <spec>` puts it.
+#
+# Do not also add an explicit insert for this id in the profile's own
+# cordis.patch.yml: two entries sharing an id leave only one of them active.
+- insert:
+    - id: dsh-selection-quote
+      name: "dsh-selection-quote"

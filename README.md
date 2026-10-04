@@ -77,8 +77,47 @@ in":
 
 ## Install
 
-The plugin has a Host half and a browser half. It is mounted through a profile's
-patch file. On macOS and Linux, the desktop profile lives at
+The plugin has a Host half and a browser half, and it is mounted by naming it in
+a profile. There are three ways to do that. **Pick one** — listing the package as
+a bundle *and* writing an explicit insert leaves two entries sharing an id, and
+only one of them stays active.
+
+| | needs a package manager | edits | verified |
+|---|---|---|---|
+| **1. As a package + profile bundle** | yes | one line of JSON | yes |
+| **2. From a clone, by absolute path** | no | four lines of YAML | yes |
+| **3. As a package + insert by name** | yes | four lines of YAML | yes |
+
+### 1. As a package, mounted as a profile bundle
+
+```sh
+dsh plugin --profile desktop add github:cfyofjackie/dsh-selection-quote
+```
+
+That forwards to pnpm inside the profile directory and installs from the GitHub
+repository. Then add the package name to the profile's bundle list in
+`~/.dsh/profiles/desktop/package.json`:
+
+```json
+"dsh": {
+  "profile": {
+    "bundles": [
+      "@deepseek-ai/dsh-base",
+      "@deepseek-ai/dsh-web-app",
+      "dsh-selection-quote"
+    ]
+  }
+}
+```
+
+That one line is the whole mount: the package ships its own profile layer
+(`cordis.patch.yml`, named by `dsh.bundle.patch` in its manifest), and a listed
+bundle without that declaration fails the boot loudly rather than silently doing
+nothing. Installing without listing it leaves the package present but inert.
+
+### 2. From a clone, by absolute path
+
+No package manager involved. On macOS and Linux the desktop profile lives at
 `~/.dsh/profiles/desktop/cordis.patch.yml`:
 
 ```yaml
@@ -102,11 +141,25 @@ and the path is a Windows path. Forward slashes work and avoid YAML escaping:
       name: "C:/path/to/dsh-selection-quote/lib/index.js"
 ```
 
-Profile patches reload live, but an already-loaded page keeps the boot graph it
-was served — **reload once** (Cmd+R on macOS, Ctrl+R elsewhere, or restart DSH)
-after mounting.
+### 3. As a package, inserted by name
 
-To remove it, delete those lines and reload.
+Same `dsh plugin … add` as above, but mount it through the profile's patch file
+instead of its bundle list. The Loader resolves a bare name from the profile's
+own `node_modules`, which is where the package manager put it:
+
+```yaml
+# ~/.dsh/profiles/desktop/cordis.patch.yml
+- insert:
+    - id: dsh-selection-quote
+      name: "dsh-selection-quote"
+```
+
+### After mounting
+
+Profile patches reload live, but an already-loaded page keeps the boot graph it
+was served — **reload once** (Cmd+R on macOS, Ctrl+R elsewhere, or restart DSH).
+
+To remove it, undo whichever mount you chose and reload.
 
 `lib/` is committed on purpose: the profile loads `lib/index.js` and
 `lib/client.js` directly, so a checkout works without a build step.
@@ -121,9 +174,17 @@ storage out of the way too:
 CLI="/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"
 export DSH_HOME=/tmp/dsh-sandbox
 "$CLI" --profile sandbox --from-default-profile web --dump-config   # create
-# replace the `[]` in $DSH_HOME/profiles/sandbox/cordis.patch.yml (see the note above)
+"$CLI" plugin --profile sandbox add github:cfyofjackie/dsh-selection-quote
+# then mount it: add "dsh-selection-quote" to
+#   $DSH_HOME/profiles/sandbox/package.json → dsh.profile.bundles
+# (or, without a package manager, put install route 2's YAML in
+#  $DSH_HOME/profiles/sandbox/cordis.patch.yml)
 "$CLI" --profile sandbox --port 3917                                # boot
 ```
+
+To check the mount actually took before booting, `--dump-config` prints the
+composed tree, and the `dsh web` page's boot graph carries one row per client
+plugin with the content hash of its bundle.
 
 Two things that surprise people about a fresh `DSH_HOME`:
 
@@ -147,14 +208,19 @@ English shows "Add to chat" with no plugin change.
 ## Development
 
 ```sh
-node build.mjs          # writes lib/index.js and lib/client.js
-node build.mjs --watch  # rebuild on change
-node --test            # headless smoke tests, no browser needed
+npm install --no-save esbuild   # the only build tool; DSH's own runtime also works
+npm run build                   # writes lib/index.js and lib/client.js
+npm run watch                   # rebuild on change
+npm test                        # build, then the headless suite (no browser needed)
 ```
 
-The only build tool is esbuild; `build.mjs` looks for it in the plugin folder,
-`$DSH_HOME/profiles/node_modules`, `~/.npm/_npx/*`, and the DSH app runtime.
-`DSH_ESBUILD=/path/to/esbuild` overrides the search.
+The underlying commands are plain Node, so npm is a convenience rather than a
+requirement: `node build.mjs`, `node build.mjs --watch`, `node --test`. Nothing
+in the repository depends on a package being installed — `npm install` above is
+only there to supply esbuild when the machine has no DSH runtime to borrow it
+from. `build.mjs` looks for esbuild in the plugin folder,
+`$DSH_HOME/profiles/node_modules`, the npm npx cache (POSIX and Windows), and the
+DSH app runtime; `DSH_ESBUILD=/path/to/esbuild` overrides the search.
 
 ### Build output
 
@@ -162,14 +228,15 @@ The only build tool is esbuild; `build.mjs` looks for it in the plugin folder,
 |---|---|
 | `lib/index.js` | Host half. It must exist: the client module system only composes a browser bundle for packages that appear as Loader entries *and* declare `dsh.client`. The body is deliberately empty. |
 | `lib/client.js` | Browser half: a CJS bundle wrapped in the `window.__ModuleLoader__.load({ id, factory })` registration envelope. |
+| `cordis.patch.yml` | This package's own profile layer, named by `dsh.bundle.patch`. It is what makes "add the name to `dsh.profile.bundles`" a complete install. |
 
 ### Tests
 
-`node --test` runs the **built bundle**, not the TypeScript source: it
-stubs the browser globals and the platform-seed modules, renders components with
-a small hook runtime that also implements React's error-boundary semantics, and
-replays real event orderings (`pointerdown` capture before `click`). Regression
-tests cover each failure this plugin has actually had.
+`npm test` runs the **built bundle**, not the TypeScript source: it stubs the
+browser globals and the platform-seed modules, renders components with a small
+hook runtime that also implements React's error-boundary semantics, and replays
+real event orderings (`pointerdown` capture before `click`). Regression tests
+cover each failure this plugin has actually had.
 
 ## Notes from building this
 

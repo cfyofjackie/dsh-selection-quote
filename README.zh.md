@@ -53,7 +53,39 @@
 
 ## 安装
 
-插件由「Host 半边 + 浏览器半边」组成，通过 profile 的 patch 文件挂载。macOS / Linux 上桌面档位在 `~/.dsh/profiles/desktop/cordis.patch.yml`：
+插件由「Host 半边 + 浏览器半边」组成，挂载方式是把它在档位里**点名**。下面三种任选其一。**不要混用**——把包列进 `bundles` 的同时又手写一条 insert，会出现两个同 id 的条目，只有一个能生效。
+
+| | 需要包管理器 | 要改 | 已实测 |
+|---|---|---|---|
+| **1. 装成包 + 列进 profile bundle** | 是 | 一行 JSON | 是 |
+| **2. 从 clone 按绝对路径挂** | 否 | 四行 YAML | 是 |
+| **3. 装成包 + 在 patch 里按包名挂** | 是 | 四行 YAML | 是 |
+
+### 1. 装成包，作为 profile bundle 挂载
+
+```sh
+dsh plugin --profile desktop add github:cfyofjackie/dsh-selection-quote
+```
+
+这条命令会在档位目录里转发给 pnpm，直接从 GitHub 仓库安装。然后把包名加进 `~/.dsh/profiles/desktop/package.json` 的 bundle 列表：
+
+```json
+"dsh": {
+  "profile": {
+    "bundles": [
+      "@deepseek-ai/dsh-base",
+      "@deepseek-ai/dsh-web-app",
+      "dsh-selection-quote"
+    ]
+  }
+}
+```
+
+这一行就是全部挂载动作：包里自带自己的 profile 层（`cordis.patch.yml`，由 manifest 里的 `dsh.bundle.patch` 指明）。反过来，列进 `bundles` 却没声明 `dsh.bundle` 的包会让启动**明确报错**，而不是静默失效——只 `add` 不列进 `bundles`，包在那儿但不起作用。
+
+### 2. 从 clone 按绝对路径挂
+
+完全不涉及包管理器。macOS / Linux 上桌面档位在 `~/.dsh/profiles/desktop/cordis.patch.yml`：
 
 ```yaml
 # ~/.dsh/profiles/desktop/cordis.patch.yml
@@ -72,9 +104,22 @@ Windows 上档位在 `%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml`，�
       name: "C:/path/to/dsh-selection-quote/lib/index.js"
 ```
 
-profile 的 patch 会 live 生效，但浏览器已经拿到的 boot graph 不会自己更新——**挂载后刷新一次页面**（macOS 上 Cmd+R，其他平台 Ctrl+R，或重启 DSH）。
+### 3. 装成包，在 patch 里按包名挂
 
-卸载就是把这几行删掉再刷新。
+`dsh plugin … add` 与第 1 种相同，但改走档位自己的 patch 文件而不是 bundle 列表。Loader 会用**档位自己的 `node_modules`**（包管理器就装在那儿）解析裸包名：
+
+```yaml
+# ~/.dsh/profiles/desktop/cordis.patch.yml
+- insert:
+    - id: dsh-selection-quote
+      name: "dsh-selection-quote"
+```
+
+### 挂载之后
+
+profile 的 patch 会 live 生效，但浏览器已经拿到的 boot graph 不会自己更新——**刷新一次页面**（macOS 上 Cmd+R，其他平台 Ctrl+R，或重启 DSH）。
+
+卸载就是撤掉你选的那种挂载方式再刷新。
 
 `lib/` 是特意提交进仓库的：profile 直接加载 `lib/index.js` 和 `lib/client.js`，所以 clone 下来不需要构建就能用。
 
@@ -86,9 +131,15 @@ profile 的 patch 会 live 生效，但浏览器已经拿到的 boot graph 不�
 CLI="/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"
 export DSH_HOME=/tmp/dsh-sandbox
 "$CLI" --profile sandbox --from-default-profile web --dump-config   # 建档位
-# 把 $DSH_HOME/profiles/sandbox/cordis.patch.yml 里的 `[]` 换成安装块（见上面的提示）
+"$CLI" plugin --profile sandbox add github:cfyofjackie/dsh-selection-quote
+# 然后挂载：把 "dsh-selection-quote" 加进
+#   $DSH_HOME/profiles/sandbox/package.json → dsh.profile.bundles
+# （不想用包管理器，就把安装方式 2 的 YAML 放进
+#   $DSH_HOME/profiles/sandbox/cordis.patch.yml）
 "$CLI" --profile sandbox --port 3917                                # 启动
 ```
+
+启动前想确认挂上了没有，`--dump-config` 会打印合成后的树；`dsh web` 那个页面的 boot graph 里，每个客户端插件各有一行，带自己 bundle 的内容哈希。
 
 全新 `DSH_HOME` 有两件事会让人意外：
 
@@ -102,12 +153,13 @@ export DSH_HOME=/tmp/dsh-sandbox
 ## 开发
 
 ```sh
-node build.mjs          # 生成 lib/index.js 和 lib/client.js
-node build.mjs --watch  # 监听 src/
-node --test            # 无浏览器冒烟测试
+npm install --no-save esbuild   # 唯一的构建工具；用 DSH 自带 runtime 里那份也行
+npm run build                   # 生成 lib/index.js 和 lib/client.js
+npm run watch                   # 监听 src/
+npm test                        # 先构建，再跑无浏览器测试
 ```
 
-唯一的构建工具是 esbuild；`build.mjs` 会依次在插件目录、`$DSH_HOME/profiles/node_modules`、`~/.npm/_npx/*`、DSH 应用自带 runtime 里找它。`DSH_ESBUILD=/path/to/esbuild` 可以指定。
+底层就是普通 Node 命令，npm 只是顺手：`node build.mjs`、`node build.mjs --watch`、`node --test`。仓库里没有任何东西依赖已安装的包——上面那句 `npm install` 只是为了在机器上没有 DSH runtime 可借用时把 esbuild 弄来。`build.mjs` 会依次在插件目录、`$DSH_HOME/profiles/node_modules`、npm 的 npx 缓存（POSIX 和 Windows 位置都查）、DSH 应用自带 runtime 里找它；`DSH_ESBUILD=/path/to/esbuild` 可以指定。
 
 ### 产物结构
 
@@ -115,6 +167,7 @@ node --test            # 无浏览器冒烟测试
 |---|---|
 | `lib/index.js` | Host 半边。必须存在：只有作为 Loader entry 挂载、**并且** package.json 声明了 `dsh.client` 的包，浏览器半边才会被组进 boot graph。这里是空实现。 |
 | `lib/client.js` | 浏览器半边，外面包着 `window.__ModuleLoader__.load({ id, factory })` 注册信封，内容是按 CJS 打的 bundle。 |
+| `cordis.patch.yml` | 这个包自己的 profile 层，由 `dsh.bundle.patch` 指明。正是它让「把包名加进 `dsh.profile.bundles`」成为一次完整安装。 |
 
 ### 测试
 

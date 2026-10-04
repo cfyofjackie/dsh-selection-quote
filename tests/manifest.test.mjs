@@ -42,6 +42,34 @@ test('the manifest declares a web client half with a resolvable bundle', () => {
   }
 })
 
+test('the package declares itself a profile bundle, so a package install mounts', () => {
+  // `dsh plugin --profile <name> add <spec>` installs the package and then warns
+  // "declares no dsh.bundle — installed as a plain dependency, not a profile
+  // layer". Declaring it is what lets a user mount the plugin by adding one name
+  // to dsh.profile.bundles instead of hand-writing a patch entry.
+  const patchRel = pkg.dsh?.bundle?.patch
+  assert.equal(typeof patchRel, 'string', 'dsh.bundle.patch must be declared')
+  assert.equal(
+    pkg.exports?.['./cordis.patch.yml'],
+    './cordis.patch.yml',
+    'the patch must be exported so the manifest is addressable',
+  )
+  assert.ok(pkg.files?.includes('cordis.patch.yml'), 'the patch must ship with the package')
+
+  const patchPath = join(root, patchRel)
+  assert.ok(existsSync(patchPath), `${patchRel} must exist`)
+  const patch = readFileSync(patchPath, 'utf8')
+  assert.match(patch, /^- insert:$/mu)
+  assert.match(patch, /id: dsh-selection-quote/u)
+  // Naming the package (rather than a path) is what makes the layer work from
+  // wherever the package manager put it.
+  assert.match(
+    patch,
+    /name: "dsh-selection-quote"/u,
+    'the bundle patch must insert the package by name',
+  )
+})
+
 test('the host half exports a mountable plugin', async () => {
   // `pathToFileURL`, not the bare path: on Windows a dynamic import of
   // `C:\...` is rejected as an unsupported URL scheme.
