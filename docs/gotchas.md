@@ -83,7 +83,12 @@ survives, the loader says `active`, the DOM gets an empty
 `<div data-slot-error>` that `display: contents` keeps invisible, and the user
 sees a feature that simply does not work.
 
-### The specific throw
+### The shape of the failure
+
+Any throw from an entry's render reaches this boundary: the component body, a
+standard hook's selector, or a child element. **This plugin's own throw is §2** —
+the hazard below is a second, independent way to die the same death, and the
+plugin now defends against both.
 
 Standard hooks such as `useInput` are bound through a selector hook that the
 renderer invokes **during render**:
@@ -98,16 +103,17 @@ function bindSnapshotSelector(source) {
 }
 ```
 
-So a selector that dereferences an absent snapshot —
+So a selector that dereferences a snapshot it cannot see —
 
 ```js
-const draft = useInput(state => state.draft)   // TypeError when state is undefined
+const draft = useInput(state => state.draft)   // TypeError if state is undefined
 ```
 
-— throws inside render and takes the entry with it. (The bundled
-`use-sync-external-store` copy makes this worse in the shim path: its change
-check is `try { return !is(inst.value, getSnapshot()) } catch { return true }`,
-so a throwing selector reads as "changed forever". React 18 uses its own
+— throws inside render and takes the entry down with no more ceremony than the
+missing icon in §2 does. (The bundled `use-sync-external-store` copy makes that
+worse on its shim path: the change check is
+`try { return !is(inst.value, getSnapshot()) } catch { return true }`, so a
+throwing selector reads as "changed forever". React 18 uses React's own
 `useSyncExternalStore` instead, where the same throw surfaces once, straight to
 the boundary.)
 
@@ -297,5 +303,6 @@ twice. Check the list rather than appending to it.
    only measure when something is on screen.
 6. **Check `active` on the slot occupant list** when a feature "does nothing" —
    it distinguishes "never registered" from "registered and abdicated".
-7. **Set the profile's `DIAGNOSTIC`-style switch before guessing.** Every
-   failure above was found by making the plugin report its own state on screen.
+7. **Add a diagnostics switch before guessing.** Every failure above was found by
+   making the plugin report its own state on screen rather than by reading more
+   code. This plugin's is `DIAGNOSTIC` in `src/client.tsx`, off by default.

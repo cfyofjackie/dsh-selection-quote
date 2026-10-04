@@ -43,7 +43,7 @@
 
 ## 本插件为什么这么做
 
-- **挂载点**：`conversation.input.overlay`（session 作用域）。写草稿要 `inputActions.setDraft`，这是 session 标准 props；root 作用域的 `shell.overlay` 拿不到，只能画一个按不动的按钮。
+- **挂载点**：`conversation.input.overlay`（session 作用域）。要写草稿就得拿到会话作用域的东西——`useInput` 是 session 标准 props，而插入引用要 `ctx.sessions.scope(id).conversation`；root 作用域的 `shell.overlay` 两样都拿不到，只能画一个按不动的按钮。
 - **不作弊**：插件不去调 shell 私有的 Lexical editor（`ComposerKeyboard` 是包内部面），只走公开草稿动作。
 - **不自动发送**：引用块进输入框后由人决定发不发。自动发送会把「引用」变成「替用户提问」，那是另一种产品。
 - **出处信息默认不写**：`> 原文` 这种块引用形式本身已经告诉模型这是引文。再加一行「—— 来自助手回复」在模型自己写的内容上只是噪声。（`INCLUDE_PROVENANCE` 常量留了口子。）
