@@ -58,7 +58,7 @@
 - 复制草稿摊开成 `> 原文`，发送时由 `codec.serialize` 生产模型文本；
 - `ref` 自包含（base64url 内嵌原文），所以解析不依赖插件内存——DSH 对找不到 codec 的定义是**拒绝发送**，不能赌内存。
 
-细节（detect 坐标折算、源名对齐）见 [README 的「引用是怎么变成模型文本的」](../README.zh.md)。
+细节（detect 坐标折算、源名对齐）见 [README 的「怎么做的」](../README.md#怎么做的)。
 
 ## 明确不做的：ChatGPT 那种引用卡片
 
