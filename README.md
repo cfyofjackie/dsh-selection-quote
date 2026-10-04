@@ -142,8 +142,8 @@ tests cover each failure this plugin has actually had.
 
 ## Notes from building this
 
-Three failures shaped the current design; all three were invisible without
-instrumentation, and each is generalizable to any DSH client plugin:
+Four failures shaped the current design; every one of them was invisible
+without instrumentation, and each is generalizable to any DSH client plugin:
 
 1. **A slot entry that throws once is silently abdicated.** The slot renderer
    wraps every entry in an error boundary and marks a crashed entry
@@ -158,6 +158,12 @@ instrumentation, and each is generalizable to any DSH client plugin:
    forces a layout per event.** During a drag-select with autoscroll that is
    dozens of forced layouts, and it made the pill take a second or two to
    appear.
+4. **A transcript selection does not clear by itself.** Chromium only collapses
+   an existing selection when the press lands on a selectable target, and the
+   transcript's own chrome opts out of selection — so pressing next to a message
+   left the blue highlight up with no way to remove it. The plugin now dismisses
+   it on a primary press, while deliberately leaving shift-press (extend) and
+   secondary press (context menu → Copy) alone.
 
 The full writeup, with the code each conclusion came from, is in
 [docs/gotchas.md](docs/gotchas.md).

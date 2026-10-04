@@ -234,6 +234,45 @@ Two things compounded:
 
 ---
 
+## 4. A transcript selection never clears on its own
+
+### Symptom
+
+After selecting a passage, pressing anywhere else in the transcript left the blue
+highlight in place — permanently. The floating pill stayed with it, so the whole
+feature looked like a stuck overlay.
+
+### Cause
+
+Chromium collapses an existing selection on mousedown **only when the press lands
+on a target that allows selection**. The transcript's own chrome — the padding
+around a message, its row wrapper, the hover action strip — opts out, so a press
+there leaves the selection exactly as it was. Nothing in the plugin held it; the
+browser simply had no instruction to drop it.
+
+This is the one failure in this document that is not the plugin's fault, and it
+still has to be the plugin's problem: the plugin is what makes people select
+transcript text at all, so it is where the annoyance surfaces.
+
+### What to do
+
+Dismiss the selection on a primary press that lands outside your own surface,
+with the two guards that keep native gestures working:
+
+```js
+if (event.button !== 0 || event.shiftKey) return;   // extend / context menu
+if (selectionInTranscript()) window.getSelection()?.removeAllRanges();
+```
+
+- `button !== 0` keeps the secondary press, which is how the context menu offers
+  **Copy** — clearing there would destroy the thing being copied.
+- `shiftKey` keeps shift-click, which *extends* a selection; clearing first would
+  destroy exactly what the user is extending.
+- `selectionInTranscript()` is a cheap walk (`closest('[data-chat-flow]')`), not
+  a measurement — this runs on every press and must not force layout (see §3).
+
+---
+
 ## Checklist for a new DSH client plugin
 
 1. **Mount in the right scope.** Session-scoped standard props (`inputActions`,

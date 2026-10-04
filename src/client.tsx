@@ -466,6 +466,22 @@ function transcriptNodeOf(
 }
 
 /**
+ * Whether the live selection currently sits inside the transcript.
+ *
+ * Deliberately cheaper than {@link probeSelection}: no geometry, no kind lookup.
+ * It runs on every press, so it must not force layout.
+ * @returns whether a non-collapsed transcript selection exists.
+ */
+function selectionInTranscript(): boolean {
+  const selection = window.getSelection()
+  if (selection === null || selection.isCollapsed || selection.rangeCount === 0) return false
+  const container = selection.getRangeAt(0).commonAncestorContainer
+  const element =
+    container.nodeType === Node.ELEMENT_NODE ? (container as Element) : container.parentElement
+  return element !== null && element.closest('[data-chat-flow]') !== null
+}
+
+/**
  * Read the current usable selection.
  * @returns the measured hit, or the gate that refused it.
  */
@@ -698,6 +714,15 @@ function SelectionQuoteAction({
       if (pill !== null && event.target instanceof Node && pill.contains(event.target)) return
       pointerDown.current = true
       retire()
+      // Dismiss the highlight as well. Chromium collapses an existing selection
+      // when the press lands on a selectable target — but the transcript's own
+      // chrome opts out of selection, so pressing the padding around a message
+      // leaves the blue highlight up with no way to remove it short of
+      // selecting something else. Two presses must keep the selection:
+      // shift-press extends it, and a secondary press is how the context menu
+      // offers Copy.
+      if (event.button !== 0 || event.shiftKey) return
+      if (selectionInTranscript()) window.getSelection()?.removeAllRanges()
     }
     /** End of a selection gesture: the moment the user expects the pill. */
     const onGestureEnd = (): void => {

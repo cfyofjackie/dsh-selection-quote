@@ -797,6 +797,63 @@ test('an unmoved selection does not re-render the pill', () => {
   }
 })
 
+test('a press on the transcript dismisses a highlight the browser would keep', () => {
+  const renderer = createRenderer()
+  const browser = installBrowser()
+  try {
+    const { exports } = loadBundle(renderer)
+    const { registrations } = applyWithFakeContext(exports)
+    const view = mountEntry(registrations[0], renderer, { draft: '', phase: 'plain' }, () => {})
+
+    const selection = assistantSelection('quoted')
+    globalThis.window.getSelection = () => selection
+    browser.dispatch('selectionchange')
+    assert.notEqual(view.button(), null)
+
+    // Chromium only collapses a selection when the press lands on a selectable
+    // target. The transcript's own chrome opts out, which is how the highlight
+    // used to get stuck with no way to remove it.
+    browser.dispatch('pointerdown', { target: new FakeHTMLElement(), button: 0 })
+    assert.equal(selection.cleared, true, 'the highlight is dismissed')
+    assert.equal(view.button(), null)
+  } finally {
+    delete globalThis.document
+  }
+})
+
+test('a shift-press or a secondary press keeps the selection', () => {
+  const renderer = createRenderer()
+  const browser = installBrowser()
+  try {
+    const openPill = selection => {
+      const { exports } = loadBundle(renderer)
+      const { registrations } = applyWithFakeContext(exports)
+      const view = mountEntry(registrations[0], renderer, { draft: '', phase: 'plain' }, () => {})
+      globalThis.window.getSelection = () => selection
+      browser.dispatch('selectionchange')
+      assert.notEqual(view.button(), null, 'the pill is up before the press')
+      return view
+    }
+
+    // Shift-press is an extend gesture: clearing first would destroy exactly the
+    // selection the user is extending.
+    const shiftSelection = assistantSelection('quoted')
+    const shiftView = openPill(shiftSelection)
+    browser.dispatch('pointerdown', { target: new FakeHTMLElement(), button: 0, shiftKey: true })
+    assert.notEqual(shiftSelection.cleared, true, 'shift-press extends, never clears')
+    shiftView.unmount()
+
+    // A secondary press is how the context menu offers Copy.
+    const rightSelection = assistantSelection('quoted')
+    const rightView = openPill(rightSelection)
+    browser.dispatch('pointerdown', { target: new FakeHTMLElement(), button: 2 })
+    assert.notEqual(rightSelection.cleared, true, 'a secondary press keeps the selection')
+    rightView.unmount()
+  } finally {
+    delete globalThis.document
+  }
+})
+
 test('an empty draft becomes the quote alone, and a busy composer refuses the write', () => {
   const renderer = createRenderer()
   const browser = installBrowser()

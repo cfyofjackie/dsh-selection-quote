@@ -167,6 +167,25 @@ at bi (dsh-app://app/assets/index-5SrrfWpU.js:56:49799)
 - **`scroll` / `resize` 只做重定位**：没有按钮在显示就直接返回；拖选中 `hitRef` 本来就是 null，所以整段拖选零测量。
 - **结果去重**：命中内容与位置完全没变就不写 state。
 
+### 坑 4：正文里的选区点空白不会自己消失
+
+现象：选中一段文字后，点对话里别的地方，蓝色高亮**永久留着**，浮动按钮也跟着挂着，整个功能看起来像卡住的浮层。
+
+原因：Chromium 只在**按下的目标允许选中**时才折叠既有选区。而对话正文自己的那些外壳——消息周围的留白、行容器、悬停才出现的操作条——都把选中关掉了，所以按在那儿选区原封不动。不是插件攥着它，是浏览器压根没收到「放开」的指令。
+
+这是本文里唯一一条**不怪插件**的故障，但它仍然得由插件兜住：正是这个插件让人开始去选正文的文字，所以这个别扭也就在这儿暴露出来。
+
+改法：在自己的浮层之外按下主键时清掉选区，同时留两个守卫保住原生手势——
+
+```js
+if (event.button !== 0 || event.shiftKey) return;   // 扩展选区 / 右键菜单
+if (selectionInTranscript()) window.getSelection()?.removeAllRanges();
+```
+
+- `button !== 0` 保住次要键，也就是右键菜单里的**复制**——在那儿清选区会把要复制的东西毁掉。
+- `shiftKey` 保住 shift 点击，那是**扩展**选区；先清就等于把用户正在扩的那段毁了。
+- `selectionInTranscript()` 是一次廉价遍历（`closest('[data-chat-flow]')`），不是测量：它每次按下都会跑，不能触发强制布局（见坑 3）。
+
 ### 三条教训
 
 1. **`useInput` 之类的 selector 一律写成 `state => state?.x ?? fallback`。** 标准 hook 由 `useSnapshotSelector` 绑定，selector 在 render 期被调用，抛一次就整死 entry。
