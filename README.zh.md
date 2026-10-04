@@ -62,6 +62,8 @@
       name: "/绝对路径/dsh-selection-quote/lib/index.js"
 ```
 
+> **新建档位的 patch 文件里只有一个 `[]`。** 要把那一行**替换**成上面的内容，不要接在它后面——`[]` 后面跟列表项是 YAML 解析错误，档位会起不来。文件里本来就有条目时，正常追加即可。
+
 Windows 上档位在 `%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml`，路径写 Windows 路径。用正斜杠可以少一层 YAML 转义：
 
 ```yaml
@@ -75,6 +77,23 @@ profile 的 patch 会 live 生效，但浏览器已经拿到的 boot graph 不�
 卸载就是把这几行删掉再刷新。
 
 `lib/` 是特意提交进仓库的：profile 直接加载 `lib/index.js` 和 `lib/client.js`，所以 clone 下来不需要构建就能用。
+
+### 不碰主档位地试它
+
+档位本身就是一套自包含的插件树，所以拿一个一次性档位来评估是最稳妥的；再配一个独立的 `DSH_HOME`，会话和存储也一并隔开：
+
+```sh
+CLI="/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"
+export DSH_HOME=/tmp/dsh-sandbox
+"$CLI" --profile sandbox --from-default-profile web --dump-config   # 建档位
+# 把 $DSH_HOME/profiles/sandbox/cordis.patch.yml 里的 `[]` 换成安装块（见上面的提示）
+"$CLI" --profile sandbox --port 3917                                # 启动
+```
+
+全新 `DSH_HOME` 有两件事会让人意外：
+
+- **它没有任何模型凭证。** 界面能开、插件能注册，但对话没有模型可用。想让它真能聊天，就把 `~/.dsh/.credentials.yaml` 拷进这个 home；不想拷的话，改成在**你自己的 `DSH_HOME`** 里建第二个档位（不要 `export` 那行），这样凭证和会话都共用，只有插件树不同。
+- **网页端 token 不是配置项。** 它每次启动现生成，随 `dsh web` 打印在 URL 里。直接开 `127.0.0.1:<port>` 会 401，要开它打印的那条 URL。
 
 ### 界面语言
 

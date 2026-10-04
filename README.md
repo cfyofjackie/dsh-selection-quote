@@ -88,6 +88,11 @@ patch file. On macOS and Linux, the desktop profile lives at
       name: "/absolute/path/to/dsh-selection-quote/lib/index.js"
 ```
 
+> **A freshly created profile's patch file contains just `[]`.** Replace that
+> line with the block above — do not append after it, because `[]` followed by a
+> list item is a YAML parse error and the profile will fail to boot. If the file
+> already holds entries, append normally.
+
 On Windows the profile is `%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml`
 and the path is a Windows path. Forward slashes work and avoid YAML escaping:
 
@@ -105,6 +110,32 @@ To remove it, delete those lines and reload.
 
 `lib/` is committed on purpose: the profile loads `lib/index.js` and
 `lib/client.js` directly, so a checkout works without a build step.
+
+### Trying it without touching your main profile
+
+A profile is a self-contained plugin tree, so a throwaway one is the safe way to
+evaluate this — and pointing a separate `DSH_HOME` at it keeps sessions and
+storage out of the way too:
+
+```sh
+CLI="/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"
+export DSH_HOME=/tmp/dsh-sandbox
+"$CLI" --profile sandbox --from-default-profile web --dump-config   # create
+# replace the `[]` in $DSH_HOME/profiles/sandbox/cordis.patch.yml (see the note above)
+"$CLI" --profile sandbox --port 3917                                # boot
+```
+
+Two things that surprise people about a fresh `DSH_HOME`:
+
+- **it has no model credentials.** The UI loads and the plugin registers, but a
+  conversation has nothing to answer with. Copy `~/.dsh/.credentials.yaml` into
+  the sandbox home to lend it your key — or, if you would rather not, create the
+  second profile inside your *real* `DSH_HOME` instead (`--profile sandbox
+  --from-default-profile web` without the `export`); that shares credentials and
+  sessions and differs only in its plugin tree.
+- **the web auth token is not a setting.** It is minted per boot and carried in
+  the URL `dsh web` prints. Opening the bare `127.0.0.1:<port>` answers 401; open
+  the printed URL instead.
 
 ### UI language
 
