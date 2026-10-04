@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # The plugin is pure browser-side React plus a Node build script, so the
+        # only cross-platform risks are the build search paths, line endings in
+        # the committed bundle, and `import()` of a Windows path. This matrix is
+        # the whole reason those are covered without owning every OS.
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # The plugin ships no dependencies; only the build tool is fetched, and it
+      # is pinned because the last step compares the committed bundle byte for
+      # byte.
+      - run: npm install --no-save --no-package-lock esbuild@0.28.1
+      - run: node build.mjs
+      - run: node --test tests/
+      - name: committed lib/ matches the source
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
+        run: git diff --exit-code -- lib/

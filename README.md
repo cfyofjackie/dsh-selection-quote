@@ -1,5 +1,7 @@
 # dsh-selection-quote
 
+[![CI](https://github.com/cfyofjackie/dsh-selection-quote/actions/workflows/ci.yml/badge.svg)](https://github.com/cfyofjackie/dsh-selection-quote/actions/workflows/ci.yml)
+
 Select text in a DSH conversation and attach it to the composer as a **quote
 reference** — an atomic chip, not pasted text. Nothing is sent.
 
@@ -76,7 +78,8 @@ in":
 ## Install
 
 The plugin has a Host half and a browser half. It is mounted through a profile's
-patch file — for the desktop profile:
+patch file. On macOS and Linux, the desktop profile lives at
+`~/.dsh/profiles/desktop/cordis.patch.yml`:
 
 ```yaml
 # ~/.dsh/profiles/desktop/cordis.patch.yml
@@ -85,13 +88,30 @@ patch file — for the desktop profile:
       name: "/absolute/path/to/dsh-selection-quote/lib/index.js"
 ```
 
+On Windows the profile is `%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml`
+and the path is a Windows path. Forward slashes work and avoid YAML escaping:
+
+```yaml
+- insert:
+    - id: dsh-selection-quote
+      name: "C:/path/to/dsh-selection-quote/lib/index.js"
+```
+
 Profile patches reload live, but an already-loaded page keeps the boot graph it
-was served — **reload once** (Cmd+R on desktop, or restart DSH) after mounting.
+was served — **reload once** (Cmd+R on macOS, Ctrl+R elsewhere, or restart DSH)
+after mounting.
 
 To remove it, delete those lines and reload.
 
 `lib/` is committed on purpose: the profile loads `lib/index.js` and
 `lib/client.js` directly, so a checkout works without a build step.
+
+### UI language
+
+The pill follows DSH's active locale. The plugin registers both `zh` and `en`
+dictionaries (`ctx.locale.register`), matching the shipped convention that a
+language's fallback chain terminates at English — so switching DSH's language to
+English shows "Add to chat" with no plugin change.
 
 ## Development
 
@@ -164,9 +184,30 @@ The full writeup, with the code each conclusion came from, is in
 
 ## Compatibility
 
-Built and verified against DSH `0.1.5-rc.3` client packages on the desktop
+Built and verified against DSH `0.1.5-rc.3` client packages on the macOS desktop
 profile. It deliberately depends on nothing but React from the platform seed, so
 it does not break when a shell build renames its own exports.
+
+**Platform support.** Nothing in the plugin is OS-specific: the browser half is
+React plus DOM APIs, and the build script uses only `node:fs`/`node:path`. The
+parts that *could* differ are covered explicitly:
+
+- the esbuild search walks POSIX **and** Windows locations
+  (`%LOCALAPPDATA%\npm-cache\_npx`, the packaged runtime under `%PROGRAMFILES%`),
+  and `DSH_ESBUILD` overrides it outright;
+- `lib/` is committed, so a user never needs the build step at all — the only
+  thing a Windows user does is point a patch at the path;
+- line endings are pinned by `.gitattributes`, esbuild normalizes output to LF,
+  and a test asserts the committed bundle contains no CRLF;
+- the test that imports the Host half goes through `pathToFileURL`, because a
+  dynamic `import()` of `C:\…` is rejected as an unsupported URL scheme;
+- CI runs the build and the full test suite on **ubuntu, windows and macos**,
+  and fails if the committed `lib/` no longer matches the source.
+
+What is *not* verified is DSH's own Windows build: the desktop app's Electron
+shell, and therefore which dist it serves, was only inspected on macOS. If
+something misbehaves there, the plugin's `DIAGNOSTIC` switch will say which gate
+refused the selection.
 
 Not affiliated with DeepSeek.
 

@@ -254,13 +254,14 @@ function decodeQuote(ref: string): string {
 
 /**
  * Apply the passage ceiling, marking the cut so the model is never silently
- * shown a partial passage.
+ * shown a partial passage. The marker is English because it is model-facing
+ * text, not UI copy.
  * @param text - the selected passage.
  * @returns the passage this plugin will carry.
  */
 function clampQuote(text: string): string {
   if (text.length <= MAX_QUOTE_CHARS) return text
-  return `${text.slice(0, MAX_QUOTE_CHARS)}\n…（引用过长，已截断）`
+  return `${text.slice(0, MAX_QUOTE_CHARS)}\n… (quote truncated)`
 }
 
 /**

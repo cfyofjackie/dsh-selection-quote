@@ -1,5 +1,7 @@
 # dsh-selection-quote
 
+[![CI](https://github.com/cfyofjackie/dsh-selection-quote/actions/workflows/ci.yml/badge.svg)](https://github.com/cfyofjackie/dsh-selection-quote/actions/workflows/ci.yml)
+
 在 DSH 对话里选中一段文字，把它作为**引用对象**放进输入框——一枚原子芯片，不是被粘进去的文本。**不发送**。
 
 [English](README.md) | 中文
@@ -51,7 +53,7 @@
 
 ## 安装
 
-插件由「Host 半边 + 浏览器半边」组成，通过 profile 的 patch 文件挂载。以桌面版为例：
+插件由「Host 半边 + 浏览器半边」组成，通过 profile 的 patch 文件挂载。macOS / Linux 上桌面档位在 `~/.dsh/profiles/desktop/cordis.patch.yml`：
 
 ```yaml
 # ~/.dsh/profiles/desktop/cordis.patch.yml
@@ -60,11 +62,23 @@
       name: "/绝对路径/dsh-selection-quote/lib/index.js"
 ```
 
-profile 的 patch 会 live 生效，但浏览器已经拿到的 boot graph 不会自己更新——**挂载后刷新一次页面**（桌面端 Cmd+R，或重启一次 DSH）。
+Windows 上档位在 `%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml`，路径写 Windows 路径。用正斜杠可以少一层 YAML 转义：
+
+```yaml
+- insert:
+    - id: dsh-selection-quote
+      name: "C:/path/to/dsh-selection-quote/lib/index.js"
+```
+
+profile 的 patch 会 live 生效，但浏览器已经拿到的 boot graph 不会自己更新——**挂载后刷新一次页面**（macOS 上 Cmd+R，其他平台 Ctrl+R，或重启 DSH）。
 
 卸载就是把这几行删掉再刷新。
 
 `lib/` 是特意提交进仓库的：profile 直接加载 `lib/index.js` 和 `lib/client.js`，所以 clone 下来不需要构建就能用。
+
+### 界面语言
+
+按钮跟随 DSH 的活动语言。插件同时注册了 `zh` 和 `en` 两套字典（`ctx.locale.register`），符合官方约定「语言的回退链必须终结于 English」——所以把 DSH 切成英文就能看到 "Add to chat"，不需要改插件。
 
 ## 开发
 
@@ -172,7 +186,7 @@ at bi (dsh-app://app/assets/index-5SrrfWpU.js:56:49799)
 
 - **引用插在文档末尾**，不是光标处。光标位置不在公开的标准 props 里（`ComposerKeyboard.caretSpan()` 是包内部面），而"文档末尾"可以精确算出来。
 - 插入被拒时**回退成纯文本引用**：那段话不会丢，但就不再是芯片了。
-- 单个引用最长 20000 字符，超出会截断并在引用里显式标注（`…（引用过长，已截断）`），不会静默给模型看半截。
+- 单个引用最长 20000 字符，超出会截断并在引用里显式标注 `… (quote truncated)`（这句是给模型看的文本，所以用英文），不会静默给模型看半截。
 - 引用**不可编辑**：它是原子节点，想改就删掉重新选。
 - 输入机处于 `adjudicating` / `claimed` / `submitting` 阶段时按钮置灰，不写入。
 - 只在 chat 视图里生效（选区必须落在 `[data-chat-flow]` 里的可引用节点上）；trajectory / waterfall 视图没有这些 DOM 锚点。
@@ -181,7 +195,17 @@ at bi (dsh-app://app/assets/index-5SrrfWpU.js:56:49799)
 
 ## 兼容性
 
-针对 DSH `0.1.5-rc.3` 的客户端包、在桌面档位上构建与验证。它刻意只依赖平台种子里的 React，所以 shell 构建改名自己的导出时不会连带失效。
+针对 DSH `0.1.5-rc.3` 的客户端包、在 macOS 桌面档位上构建与验证。它刻意只依赖平台种子里的 React，所以 shell 构建改名自己的导出时不会连带失效。
+
+**平台支持。** 插件本身没有任何 OS 相关代码：浏览器半边是 React + DOM API，构建脚本只用 `node:fs` / `node:path`。可能出问题的几处都单独处理了：
+
+- esbuild 搜索同时覆盖 POSIX 和 Windows 位置（`%LOCALAPPDATA%\npm-cache\_npx`、`%PROGRAMFILES%` 下的打包 runtime），并且 `DSH_ESBUILD` 可以直接指定；
+- `lib/` 已提交，用户根本不需要跑构建——Windows 用户要做的只是把 patch 指向那个路径；
+- 换行符由 `.gitattributes` 钉住，esbuild 输出会规范化成 LF，并且有一条测试断言提交的 bundle 里没有 CRLF；
+- 导入 Host 半边的测试走 `pathToFileURL`，因为 `import('C:\\…')` 在 Windows 上会被当成不支持的 URL scheme 拒绝；
+- CI 在 **ubuntu / windows / macos** 三平台上跑构建和全部测试，并且会在提交的 `lib/` 与源码不一致时失败。
+
+**没有验证的是 DSH 自己的 Windows 构建**：桌面端 Electron shell（以及它到底 serve 哪份 dist）我只在 macOS 上查过。真在那边出问题的话，插件的 `DIAGNOSTIC` 开关会直接告诉你卡在哪一道门槛。
 
 与 DeepSeek 官方无关联。
 

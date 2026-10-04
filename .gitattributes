@@ -1,0 +1,7 @@
+# `lib/` is committed build output, so the byte-level shape of the tree matters:
+# a Windows checkout with `core.autocrlf` on would otherwise rewrite line endings
+# and change the bundle.
+* text=auto eol=lf
+
+*.png binary
+*.webp binary

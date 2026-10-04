@@ -12,7 +12,7 @@ import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
@@ -43,7 +43,9 @@ test('the manifest declares a web client half with a resolvable bundle', () => {
 })
 
 test('the host half exports a mountable plugin', async () => {
-  const mod = await import(join(root, pkg.main))
+  // `pathToFileURL`, not the bare path: on Windows a dynamic import of
+  // `C:\...` is rejected as an unsupported URL scheme.
+  const mod = await import(pathToFileURL(join(root, pkg.main)).href)
   assert.equal(typeof mod.apply, 'function')
   assert.ok(Array.isArray(mod.inject))
 })
@@ -53,7 +55,10 @@ test('the browser bundle uses the registration envelope and only seed externals'
   assert.match(bundle, /^window\.__ModuleLoader__\.load\(\{/)
   assert.match(bundle, new RegExp(`id: ${JSON.stringify(pkg.name)},`))
   assert.match(bundle, /factory: \(require\) => \{/)
+  // LF-only: the build pins `lineEnding: 'lf'` and .gitattributes pins the
+  // checkout, so a Windows clone cannot silently change these bytes.
   assert.match(bundle, /\n\t\treturn module\.exports;\n\t\}\n\}\);\n$/)
+  assert.ok(!bundle.includes('\r\n'), 'the committed bundle must use LF line endings')
 
   const required = [...bundle.matchAll(/require\("([^"]+)"\)/g)].map(match => match[1])
   assert.ok(required.length > 0, 'the bundle must require its seed modules')

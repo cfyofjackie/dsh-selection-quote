@@ -18,6 +18,7 @@
  */
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -45,30 +46,48 @@ const SEED_EXTERNALS = [
 /**
  * Locate an installed esbuild without requiring a local `node_modules`. The
  * plugin deliberately ships no dependencies: the only build tool it needs is
- * the one already present in the DSH runtime or in an npx cache.
+ * the one already present in the DSH runtime or in an npx/pnpm store. Every
+ * candidate is optional, so the search is platform-neutral — a path that does
+ * not exist on this OS simply loses.
  * @returns absolute path of the esbuild package directory.
  */
 function findEsbuild() {
-  const home = process.env.HOME ?? ''
+  const home = homedir()
   const dshHome = process.env.DSH_HOME ?? join(home, '.dsh')
   const candidates = []
   if (process.env.DSH_ESBUILD !== undefined) candidates.push(process.env.DSH_ESBUILD)
   candidates.push(join(root, 'node_modules', 'esbuild'))
   candidates.push(join(dshHome, 'profiles', 'node_modules', 'esbuild'))
-  const npx = join(home, '.npm', '_npx')
-  if (existsSync(npx)) {
+  // npm keeps its npx cache under ~/.npm on POSIX and under
+  // %LOCALAPPDATA%\npm-cache on Windows.
+  const npxRoots = [join(home, '.npm', '_npx')]
+  const localAppData = process.env.LOCALAPPDATA
+  if (localAppData !== undefined) npxRoots.push(join(localAppData, 'npm-cache', '_npx'))
+  for (const npx of npxRoots) {
+    if (!existsSync(npx)) continue
     for (const entry of readdirSync(npx)) {
       candidates.push(join(npx, entry, 'node_modules', 'esbuild'))
     }
   }
-  candidates.push(
-    '/Applications/DeepSeek Harness.app/Contents/Resources/runtime/node_modules/esbuild',
-  )
+  // Packaged DSH runtimes. The macOS bundle is the only layout known today; the
+  // others are guesses a future release may satisfy, and cost nothing to try.
+  const resources = [
+    '/Applications/DeepSeek Harness.app/Contents/Resources',
+    join(process.env.PROGRAMFILES ?? '', 'DeepSeek Harness', 'resources'),
+    join(localAppData ?? '', 'Programs', 'DeepSeek Harness', 'resources'),
+  ]
+  for (const base of resources) {
+    candidates.push(join(base, 'runtime', 'node_modules', 'esbuild'))
+    candidates.push(
+      join(base, 'app.asar.unpacked', 'dsh', 'node_modules', 'esbuild'),
+    )
+  }
   for (const candidate of candidates) {
     if (existsSync(join(candidate, 'package.json'))) return candidate
   }
   throw new Error(
-    'build: no esbuild found. Set DSH_ESBUILD=/path/to/esbuild or run `npm i -D esbuild` here.',
+    'build: no esbuild found. Set DSH_ESBUILD to an esbuild package directory, ' +
+      'or run `npm install --no-save esbuild` in this folder.',
   )
 }
 
@@ -109,30 +128,42 @@ const envelopePlugin = {
   },
 }
 
-/** Host half: plain ESM, bundled so the plugin folder stays dependency-free. */
-const host = {
-  entryPoints: [join(root, 'src', 'index.ts')],
-  outfile: join(root, 'lib', 'index.js'),
+/**
+ * Options every half shares.
+ *
+ * Line endings are not set here: `lineEnding` is a CLI-only flag, and esbuild
+ * already normalizes output to LF regardless of the source's endings (verified:
+ * a CRLF copy of `src/client.tsx` produces a bundle with zero CR bytes). That
+ * matters because `lib/` is committed — `.gitattributes` pins the checkout and
+ * the manifest test asserts the committed bundle carries no CRLF, so a Windows
+ * clone cannot silently change the bytes the profile loads.
+ */
+const shared = {
   bundle: true,
-  format: 'esm',
-  platform: 'node',
-  target: 'node22',
   logLevel: 'info',
   legalComments: 'none',
 }
 
+/** Host half: plain ESM, bundled so the plugin folder stays dependency-free. */
+const host = {
+  ...shared,
+  entryPoints: [join(root, 'src', 'index.ts')],
+  outfile: join(root, 'lib', 'index.js'),
+  format: 'esm',
+  platform: 'node',
+  target: 'node22',
+}
+
 /** Browser half: CJS factory, platform seed external, automatic JSX runtime. */
 const client = {
+  ...shared,
   entryPoints: [join(root, 'src', 'client.tsx')],
   outfile: join(root, 'lib', 'client.js'),
-  bundle: true,
   format: 'cjs',
   platform: 'browser',
   target: 'chrome120',
   jsx: 'automatic',
   external: SEED_EXTERNALS,
-  logLevel: 'info',
-  legalComments: 'none',
   plugins: [envelopePlugin],
 }
 
