@@ -2,26 +2,94 @@
 
 [![CI](https://github.com/cfyofjackie/dsh-selection-quote/actions/workflows/ci.yml/badge.svg)](https://github.com/cfyofjackie/dsh-selection-quote/actions/workflows/ci.yml)
 
-Select a passage in a DSH conversation and put it in the composer as a **quote**
-— a removable reference object, not pasted text.
-
 English | [中文](README.md)
 
-![Selecting a passage; an "add to chat" button appears next to the selection](docs/demo.png)
+Select a passage in a DSH conversation and put it in the composer as a **quote** —
+a removable reference object, not pasted text.
 
-**One command installs it. The web version and the desktop app use the same
-mechanism — only the profile name differs:**
+## Install
 
-```sh
-dsh plugin --profile web     add github:cfyofjackie/dsh-selection-quote   # web / dsh web
-dsh plugin --profile desktop add github:cfyofjackie/dsh-selection-quote   # desktop app
+The web version and the desktop app use the same flow. Open the sidebar's
+**Plugins** page → **Add plugin**, paste this in and press Install:
+
+```
+github:cfyofjackie/dsh-selection-quote
 ```
 
-Both are verified; reload the page afterwards (restart the desktop app if nothing
-happens). One `add` does both halves — install the package and mount it.
+> ⚠️ **Choose `NPM` as the install source — not the mainland-China mirror.** With
+> the mirror selected the dialog fails with
+> `无法获取插件信息: client api: pluginManager/inspect failed: Load failed`.
+> Reproduced: same machine, same address, `NPM` succeeds immediately.
 
-> `dsh --profile desktop --dump-config` is refused (the desktop profile is
-> managed exclusively by the app), but the `plugin` subcommand is not.
+Reload the page afterwards (restart the desktop app if nothing happens).
+
+<details>
+<summary>Command line / pinning a version / isolated trial / no package manager</summary>
+
+### Command line
+
+One `add` installs the package and mounts it. One line per version:
+
+```sh
+dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote
+```
+
+```sh
+dsh plugin --profile desktop add github:cfyofjackie/dsh-selection-quote
+```
+
+### Pinning a version
+
+Append a git tag to the address:
+
+```sh
+dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote#v0.1.0
+```
+
+### Isolated trial
+
+Its own `DSH_HOME`, no contact with your existing profile:
+
+```sh
+CLI="/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"
+export DSH_HOME=/tmp/dsh-sandbox
+"$CLI" --profile sandbox --from-default-profile web --dump-config
+"$CLI" plugin --profile sandbox add github:cfyofjackie/dsh-selection-quote
+"$CLI" --profile sandbox --port 3917
+```
+
+A fresh `DSH_HOME` has no model credentials: the UI opens and the plugin
+registers, but nothing can answer a conversation. To lend it your key, copy
+`~/.dsh/.credentials.yaml` into `/tmp/dsh-sandbox/`. (`dsh web` prints an
+authenticated URL — open that; the bare port answers 401.)
+
+### No package manager
+
+Write an absolute path straight into the profile's `cordis.patch.yml`:
+
+```yaml
+- insert:
+    - id: dsh-selection-quote
+      name: "/absolute/path/dsh-selection-quote/lib/index.js"
+```
+
+A freshly created profile's patch file contains just `[]`; **replace** that line
+rather than appending after it, because `[]` followed by a list item is a YAML
+parse error and the profile will not boot.
+
+### Once published to npm
+
+The command gets shorter and matches the official plugins exactly — but that
+needs an npm account, and npm's website bot protection blocks some exit IPs (see
+[docs/releasing.md](docs/releasing.md)):
+
+```sh
+dsh plugin --profile web add dsh-selection-quote
+```
+
+</details>
+
+![Selecting a passage; an "add to chat" button appears next to the selection](docs/demo.png)
 
 ## The problem it solves
 
@@ -44,105 +112,6 @@ has no such action; you copy and paste by hand.
 5. Focus returns to the composer; you type your question and send it yourself.
 
 It never sends, never writes storage, and never touches the session log.
-
-## Install
-
-Installing the package without mounting it, or mounting it without the page
-reloading, both look exactly like "nothing happened". Pick one of these.
-
-### From a command (recommended)
-
-One `add` does both halves — install the package and mount it:
-
-```sh
-dsh plugin --profile web     add github:cfyofjackie/dsh-selection-quote   # web
-dsh plugin --profile desktop add github:cfyofjackie/dsh-selection-quote   # desktop app
-```
-
-Reload the page once afterwards. To pin a version, append a tag:
-
-```sh
-dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote#v0.1.0
-```
-
-### From the GUI
-
-Sidebar **Plugins** page → **Add plugin** → enter this → Install:
-
-```
-github:cfyofjackie/dsh-selection-quote
-```
-
-The field accepts exactly these shapes (from the host's `parseInstallSpec`):
-
-| Shape | Example |
-|---|---|
-| git shorthand | `github:cfyofjackie/dsh-selection-quote` |
-| hosted repository URL | `https://github.com/cfyofjackie/dsh-selection-quote` |
-| git protocol | `git@github.com:cfyofjackie/dsh-selection-quote.git` |
-| tarball | any address ending `.tgz` / `.tar.gz` |
-| local directory | must be **absolute**, e.g. `/Users/you/dev/dsh-selection-quote` |
-| registry name | `dsh-selection-quote` (only meaningful once published to npm) |
-
-Pasting the terminal command into it (with `dsh plugin --profile … add`) does not
-work.
-
-> Known problem: in some environments this dialog's pre-install check for a git
-> address fails with `无法获取插件信息: client api: pluginManager/inspect failed:
-> Load failed`. That is the DSH client-to-host call itself failing, unrelated to
-> what was typed (it fails with a correct spec too). Use the command above.
-
-### Other ways to install
-
-<details>
-<summary>Isolated trial / no package manager / once published to npm</summary>
-
-**Isolated trial** (its own `DSH_HOME`, no contact with your main profile):
-
-```sh
-CLI="/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"
-export DSH_HOME=/tmp/dsh-sandbox
-"$CLI" --profile sandbox --from-default-profile web --dump-config   # create
-"$CLI" plugin --profile sandbox add github:cfyofjackie/dsh-selection-quote
-"$CLI" --profile sandbox --port 3917                                # boot
-```
-
-A fresh `DSH_HOME` has no model credentials: the UI opens and the plugin
-registers, but nothing can answer a conversation. To lend it your key, copy
-`~/.dsh/.credentials.yaml` into `/tmp/dsh-sandbox/`. (`dsh web` prints an
-authenticated URL — open that; the bare port answers 401.)
-
-**No package manager: mount a clone by absolute path** in the profile's
-`cordis.patch.yml`:
-
-```yaml
-- insert:
-    - id: dsh-selection-quote
-      name: "/absolute/path/dsh-selection-quote/lib/index.js"
-```
-
-A freshly created profile's patch file contains just `[]`; **replace** that line
-rather than appending after it, because `[]` followed by a list item is a YAML
-parse error and the profile will not boot.
-
-**Pin a version** (recommended for anything long-lived, so later changes cannot
-affect you):
-
-```sh
-dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote#v0.1.0
-```
-
-`#v0.1.0` is a git tag; swap it for another tag, or drop `#…` to follow main.
-
-**Once published to npm**, the command gets shorter and matches the official
-plugins exactly — but that needs an npm account, and npm's website bot protection
-blocks some exit IPs (see [docs/releasing.md](docs/releasing.md)):
-
-```sh
-dsh plugin --profile web add dsh-selection-quote
-```
-
-</details>
 
 ## How it works
 
@@ -175,8 +144,10 @@ Four decisions carry the design:
   shows nothing at all. Without that boundary none of the other problems would
   have been findable.
 
-Four failures are written up in [docs/gotchas.md](docs/gotchas.md), each with the
-source it was traced to.
+The failures are written up in [docs/gotchas.md](docs/gotchas.md), each with the
+source it was traced to. Design trade-offs — why a quote rather than an
+annotation, why not a ChatGPT-style card — are in
+[docs/design-notes.md](docs/design-notes.md) (Chinese).
 
 ## Known limitations
 
@@ -196,9 +167,9 @@ source it was traced to.
 ## Development
 
 ```sh
-npm install --no-save esbuild   # the only build tool; DSH's own runtime also works
-npm run build                   # writes lib/
-npm test                        # build, then the headless suite
+npm install --no-save esbuild
+npm run build
+npm test
 ```
 
 `npm test` runs the **built bundle**, not the TypeScript source: it stubs the
@@ -210,6 +181,8 @@ actually had.
 `lib/` is committed, so a checkout needs no build step. CI builds and tests on
 ubuntu, windows and macos, and fails when the committed `lib/` no longer matches
 the source.
+
+Releasing to npm (maintainer): [docs/releasing.md](docs/releasing.md).
 
 ## License
 

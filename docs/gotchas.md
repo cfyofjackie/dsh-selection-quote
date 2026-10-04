@@ -279,6 +279,29 @@ if (selectionInTranscript()) window.getSelection()?.removeAllRanges();
 
 ---
 
+## Note: the install-source dropdown can break the Add-plugin dialog
+
+The Plugins page's **Add plugin** dialog pre-checks a spec before installing. With
+the install source set to the mainland-China mirror
+(`https://registry.npmmirror.com/`), that check fails for *every* spec — including
+a git address, where the registry should not be consulted at all:
+
+```
+无法获取插件信息: client api: pluginManager/inspect failed: Load failed
+```
+
+Reproduced by hand: same machine, same address, selecting `NPM` instead installs
+immediately. The error is a carrier failure, not a refusal — `carrierFailure()` in
+`dsh-api-gateway` builds that sentence for a transport throw, and `Load failed`
+appears nowhere in DSH's own sources, so the host handler threw and the message
+came from the platform.
+
+`inspect` computes `registryPlan(options?.registry, await this.registries())`
+for every spec kind before it looks at what the spec is, and that path runs the
+mirror value through `normalizeRegistry`, which throws for anything that is not
+an http(s) URL. So a registry choice can take down an inspection that has nothing
+to do with registries. Tell users to leave the source on `NPM`.
+
 ## Note: `dsh plugin add` mounts a bundle for you
 
 `dsh plugin --profile <name> add <spec>` does two things when the installed
