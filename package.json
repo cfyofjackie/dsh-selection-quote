@@ -1,0 +1,44 @@
+{
+  "name": "dsh-selection-quote",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Select text in a DSH conversation and attach it to the composer as a removable quote reference.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cfyofjackie/dsh-selection-quote.git"
+  },
+  "homepage": "https://github.com/cfyofjackie/dsh-selection-quote#readme",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "client-plugin",
+    "quote",
+    "composer"
+  ],
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-input-trigger"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch"
+  }
+}
