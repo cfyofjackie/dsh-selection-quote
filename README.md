@@ -8,21 +8,16 @@
 
 ![在对话中选中一段文字，选区旁浮出「添加到对话框」](docs/demo.png)
 
-**在界面里装（最简单）**：侧边栏 **Plugins** 页面 → **添加插件** → 填
-
-```
-github:cfyofjackie/dsh-selection-quote
-```
-
-→ 点「安装」。**填的就是这一串，不要带 `dsh plugin --profile … add` 那部分**——那个框要的是插件标识本身，不是终端命令。
-
-**或者一条命令：**
+**一条命令装好。网页版和桌面 App 用的是同一个机制，只是档位名不同：**
 
 ```sh
-dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote
+dsh plugin --profile web     add github:cfyofjackie/dsh-selection-quote   # 网页版 / dsh web
+dsh plugin --profile desktop add github:cfyofjackie/dsh-selection-quote   # 桌面 App
 ```
 
-装完刷新一次页面即可。`web` 换成你的档位名；其他安装方式和隔离试装见[下面](#安装)。
+两个都**实测过**，装完**刷新一次页面**即可（桌面 App 没反应就重启它）。`add` 一条命令做完"装包 + 挂载"两件事。
+
+> `dsh --profile desktop --dump-config` 会被拒绝（桌面档位由 App 独占管理），但 `plugin` 子命令不受影响。
 
 ## 解决什么问题
 
@@ -46,6 +41,23 @@ ChatGPT / Codex 里选中一段话可以「添加到对话」：针对**具体�
 
 只装包不挂载、或者挂载了没生效，都会表现为"什么都没发生"。下面几种任选其一。
 
+### 命令安装（推荐）
+
+`add` 一条命令做完"装包 + 挂载"两件事：
+
+```sh
+dsh plugin --profile web     add github:cfyofjackie/dsh-selection-quote   # 网页版
+dsh plugin --profile desktop add github:cfyofjackie/dsh-selection-quote   # 桌面 App
+```
+
+装完刷新一次页面。也可以用**带 tag 的形式**锁版本：
+
+```sh
+dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote#v0.1.0
+```
+
+> ⚠️ 网页版别拿 `desktop` 试——那是桌面 App 自己的档位。
+
 ### 界面安装
 
 侧边栏 **Plugins** 页面 → **添加插件** → 填下面这一串 → 「安装」：
@@ -67,22 +79,17 @@ github:cfyofjackie/dsh-selection-quote
 
 把它当成终端命令填进去（带上 `dsh plugin --profile … add`）是不行的。
 
-### 命令安装
+> 已知问题：这个对话框在某些环境下对 git 地址的预检会报
+> `无法获取插件信息：client api: pluginManager/inspect failed: Load failed`。
+> 那是 DSH 客户端→host 那次调用本身失败了，跟填的内容无关（填对了也一样）。
+> 遇到就用上面的命令安装。
 
-`add` 一条命令做完"装包 + 挂载"两件事：
-
-```sh
-dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote
-```
-
-把 `web` 换成你要装进去的档位名，然后**刷新一次页面**。
-
-> ⚠️ 想先试再说的话别用 `desktop`——那是你正在用的档位。用下面「隔离试装」里的办法，一点都碰不到它。
+### 其他安装方式
 
 <details>
-<summary>其他安装方式</summary>
+<summary>隔离试装 / 不用包管理器 / 发布到 npm 之后</summary>
 
-**隔离试装**（独立 `DSH_HOME`，不碰主档位）：
+**隔离试装**（独立 `DSH_HOME`，不碰你现有的档位）：
 
 ```sh
 CLI="/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"
@@ -103,14 +110,6 @@ export DSH_HOME=/tmp/dsh-sandbox
 ```
 
 新建档位的 patch 文件里只有一个 `[]`，要**替换**那一行，不要接在它后面——`[]` 后面跟列表项是 YAML 解析错误，档位会起不来。
-
-**锁定版本安装**（长期用建议这样，不会被后续改动影响）：
-
-```sh
-dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote#v0.1.0
-```
-
-`#v0.1.0` 是 git tag；换成别的 tag 就换版本，去掉 `#...` 就是跟最新 main。
 
 **发布到 npm 之后**，命令还能更短，和官方插件形态完全一致——但那需要一个 npm 账号，而且 npm 官网的反机器人防护会拦掉某些出口 IP（详见 [docs/releasing.md](docs/releasing.md)）：
 

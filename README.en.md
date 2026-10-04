@@ -9,23 +9,19 @@ English | [中文](README.md)
 
 ![Selecting a passage; an "add to chat" button appears next to the selection](docs/demo.png)
 
-**From the GUI (easiest)**: the sidebar's **Plugins** page → **Add plugin** → enter
-
-```
-github:cfyofjackie/dsh-selection-quote
-```
-
-→ Install. Type **only that spec** — the field wants the plugin identifier, not the
-`dsh plugin --profile … add` command around it.
-
-**Or one command:**
+**One command installs it. The web version and the desktop app use the same
+mechanism — only the profile name differs:**
 
 ```sh
-dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote
+dsh plugin --profile web     add github:cfyofjackie/dsh-selection-quote   # web / dsh web
+dsh plugin --profile desktop add github:cfyofjackie/dsh-selection-quote   # desktop app
 ```
 
-Reload the page once and it is live. Replace `web` with your profile; other ways
-to install are [below](#install).
+Both are verified; reload the page afterwards (restart the desktop app if nothing
+happens). One `add` does both halves — install the package and mount it.
+
+> `dsh --profile desktop --dump-config` is refused (the desktop profile is
+> managed exclusively by the app), but the `plugin` subcommand is not.
 
 ## The problem it solves
 
@@ -54,6 +50,21 @@ It never sends, never writes storage, and never touches the session log.
 Installing the package without mounting it, or mounting it without the page
 reloading, both look exactly like "nothing happened". Pick one of these.
 
+### From a command (recommended)
+
+One `add` does both halves — install the package and mount it:
+
+```sh
+dsh plugin --profile web     add github:cfyofjackie/dsh-selection-quote   # web
+dsh plugin --profile desktop add github:cfyofjackie/dsh-selection-quote   # desktop app
+```
+
+Reload the page once afterwards. To pin a version, append a tag:
+
+```sh
+dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote#v0.1.0
+```
+
 ### From the GUI
 
 Sidebar **Plugins** page → **Add plugin** → enter this → Install:
@@ -76,21 +87,15 @@ The field accepts exactly these shapes (from the host's `parseInstallSpec`):
 Pasting the terminal command into it (with `dsh plugin --profile … add`) does not
 work.
 
-### From a command
+> Known problem: in some environments this dialog's pre-install check for a git
+> address fails with `无法获取插件信息: client api: pluginManager/inspect failed:
+> Load failed`. That is the DSH client-to-host call itself failing, unrelated to
+> what was typed (it fails with a correct spec too). Use the command above.
 
-One `add` does both halves — install the package and mount it:
-
-```sh
-dsh plugin --profile web add github:cfyofjackie/dsh-selection-quote
-```
-
-Replace `web` with the profile you want it in, then **reload the page once**.
-
-> ⚠️ Do not try it on `desktop` — that is the profile you are working in. Use the
-> isolated sandbox below instead; it touches nothing.
+### Other ways to install
 
 <details>
-<summary>Other ways to install</summary>
+<summary>Isolated trial / no package manager / once published to npm</summary>
 
 **Isolated trial** (its own `DSH_HOME`, no contact with your main profile):
 
