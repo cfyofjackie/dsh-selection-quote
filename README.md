@@ -118,7 +118,7 @@ English shows "Add to chat" with no plugin change.
 ```sh
 node build.mjs          # writes lib/index.js and lib/client.js
 node build.mjs --watch  # rebuild on change
-node --test tests/      # headless smoke tests, no browser needed
+node --test            # headless smoke tests, no browser needed
 ```
 
 The only build tool is esbuild; `build.mjs` looks for it in the plugin folder,
@@ -134,7 +134,7 @@ The only build tool is esbuild; `build.mjs` looks for it in the plugin folder,
 
 ### Tests
 
-`node --test tests/` runs the **built bundle**, not the TypeScript source: it
+`node --test` runs the **built bundle**, not the TypeScript source: it
 stubs the browser globals and the platform-seed modules, renders components with
 a small hook runtime that also implements React's error-boundary semantics, and
 replays real event orderings (`pointerdown` capture before `click`). Regression

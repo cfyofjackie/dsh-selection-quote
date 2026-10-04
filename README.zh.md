@@ -85,7 +85,7 @@ profile 的 patch 会 live 生效，但浏览器已经拿到的 boot graph 不�
 ```sh
 node build.mjs          # 生成 lib/index.js 和 lib/client.js
 node build.mjs --watch  # 监听 src/
-node --test tests/      # 无浏览器冒烟测试
+node --test            # 无浏览器冒烟测试
 ```
 
 唯一的构建工具是 esbuild；`build.mjs` 会依次在插件目录、`$DSH_HOME/profiles/node_modules`、`~/.npm/_npx/*`、DSH 应用自带 runtime 里找它。`DSH_ESBUILD=/path/to/esbuild` 可以指定。
@@ -99,7 +99,7 @@ node --test tests/      # 无浏览器冒烟测试
 
 ### 测试
 
-`node --test tests/` 跑的是**构建产物**而不是 TypeScript 源码：它 stub 掉浏览器全局量和平台种子模块，用一个带 React 错误边界语义的迷你 hook 运行时渲染组件，并且按真实事件顺序重放（`pointerdown` 捕获先于 `click`）。每一项回归测试都对应这个插件真实出过的一次故障。
+`node --test` 跑的是**构建产物**而不是 TypeScript 源码：它 stub 掉浏览器全局量和平台种子模块，用一个带 React 错误边界语义的迷你 hook 运行时渲染组件，并且按真实事件顺序重放（`pointerdown` 捕获先于 `click`）。每一项回归测试都对应这个插件真实出过的一次故障。
 
 ## 踩过的坑
 

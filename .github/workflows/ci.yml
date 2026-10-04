@@ -31,7 +31,12 @@ jobs:
       # byte.
       - run: npm install --no-save --no-package-lock esbuild@0.28.1
       - run: node build.mjs
-      - run: node --test tests/
+      # Bare `node --test`: auto-discovery is the only form that
+      # works on every Node from 18 to 26 and on every OS. Node 21+ reads
+      # positional arguments as globs, so `node --test tests/` fails there
+      # with "Cannot find module .../tests" — which is exactly what the first
+      # CI run caught on all three platforms.
+      - run: node --test
       - name: committed lib/ matches the source
         if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
         run: git diff --exit-code -- lib/
